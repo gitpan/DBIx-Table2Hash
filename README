@@ -1,0 +1,145 @@
+NAME
+    "DBIx::Table2Hash" - Read a database table into a hash
+
+Version
+    This document refers to version 1.00 of "DBIx::Table2Hash", released
+    8-Jan-2003.
+
+Synopsis
+            #!/usr/bin/perl
+
+            my($hash_ref) = DBIx::Table2Hash -> new
+            (
+                    dbh          => $dbh,
+                    table_name   => $table_name,
+                    key_column   => 'name',
+                    value_column => 'id'
+            ) -> select();
+
+Description
+    "DBIx::Table2Hash" is a pure Perl module.
+
+    This module reads a database table and stores keys and values in a hash.
+    The resultant hash is not nested in any way.
+
+    The aim is to create a hash which is a simple look-up table. To this
+    end, the module allows the key_column to point to an SQL expression.
+
+Constructor and initialization
+    new(...) returns a "DBIx::Table2Hash" object.
+
+    This is the class's contructor.
+
+    Parameters:
+
+    *   dbh
+
+        A database handle.
+
+    *   table_name
+
+        The name of the table to select from.
+
+    *   key_column
+
+        The name of the column, or SQL expression, to use for hash keys.
+
+        Say you have 2 columns, called col_a and col_b. Then you can
+        concatenate them with:
+
+        key_column => 'concat(col_a, col_b)'
+
+        or, even fancier,
+
+        key_column => "concat(col_a, '-', col_b)"
+
+    *   value_column
+
+        The name of the column to use for hash values.
+
+    *   where
+
+        The optional where clause, including the word 'where', to add to the
+        select.
+
+Method: new(...)
+    Returns a object of type "DBIx::Table2Hash".
+
+    See above, in the section called 'Constructor and initialization'.
+
+Method: select()
+    Returns a hash ref.
+
+    Calling select() actually executes the SQL select statement, and builds
+    the hash.
+
+Required Modules
+    DBI, so you can provide a database handle.
+
+Changes
+    See Changes.txt.
+
+FAQ
+    Q: What is the point of this module?
+
+    A: To be able to restore a hash from a database rather than from a file.
+
+    Q: Can your other module "DBIx::Hash2Table" be used to save the hash
+    back to the database?
+
+    A: Sure.
+
+    Q: Are there any other modules with similar capabilities?
+
+    A: Yes:
+
+    *   "DBIx::Lookup::Field"
+
+        Quite similar.
+
+    *   "DBIx::TableHash"
+
+        This module takes a very long set of parameters, but unfortunately
+        does not take a database handle.
+
+        It does mean the module, being extremely complex, can read in more
+        than one column as the value of a hash key, and it has caching
+        abilities too.
+
+        It works by tieing a hash to an MySQL table, and hence supports
+        writing to the table. It uses MySQL-specific code, for example, when
+        it locks tables.
+
+        Unfortunately, it does not use data binding, so it cannot handle
+        data which contains single quotes!
+
+        Further, it uses /^\w+$/ to 'validate' column names, so it cannot
+        accept an SQL expression instead of a column name.
+
+        Lastly, it also uses /^\w+$/ to 'validate' table names, so it cannot
+        accept table names and views containing spaces and other 'funny'
+        characters, eg '&' (both of which I have to deal with under MS
+        Access).
+
+    *   "DBIx::Tree"
+
+        This module is more like the inverse of "DBIx::Hash2Table", in that
+        it assumes you are building a nested hash.
+
+        As it reads the database table it calls a call-back sub, which you
+        use to process the rows of the table.
+
+Author
+    "DBIx::Table2Hash" was written by Ron Savage *<ron@savage.net.au>* in
+    2003.
+
+    Home page: http://savage.net.au/index.html
+
+Copyright
+    Australian copyright (c) 2003, Ron Savage. All rights reserved.
+
+            All Programs of mine are 'OSI Certified Open Source Software';
+            you can redistribute them and/or modify them under the terms of
+            The Artistic License, a copy of which is available at:
+            http://www.opensource.org/licenses/index.html
+

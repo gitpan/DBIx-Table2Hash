@@ -1,0 +1,15 @@
+test.pl
+Makefile.PL
+Changes.txt
+Table2Hash.pm
+pm_to_blib
+Table2Hash.html
+MANIFEST
+README
+blib/html/site/lib/DBIx/Table2Hash.html
+blib/man3/.exists
+blib/arch/auto/DBIx/Table2Hash/.exists
+blib/lib/auto/DBIx/Table2Hash/.exists
+blib/lib/DBIx/.exists
+blib/lib/DBIx/Table2Hash.pm
+t/test.t
