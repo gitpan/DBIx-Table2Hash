@@ -31,7 +31,8 @@ Synopsis
                     table_name    => $table_name,
                     key_column    => 'name',
                     child_column  => 'id',
-                    parent_column => 'parent_id'
+                    parent_column => 'parent_id',
+                    skip_columns  => ['code']
             ) -> select_tree();
 
 Description
@@ -126,6 +127,15 @@ Constructor and initialization
 
         The optional where clause, including the word 'where', to add to the
         select.
+
+    *   skip_columns
+
+        An array ref of column names to ignore when reading the database
+        table.
+
+        It defaults to [].
+
+        This parameter is optional.
 
 Method: new(...)
     Returns a object of type "DBIx::Table2Hash".

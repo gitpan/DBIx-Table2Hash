@@ -57,7 +57,7 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw(
 
 );
-our $VERSION = '1.11';
+our $VERSION = '1.12';
 
 # -----------------------------------------------
 
@@ -72,6 +72,7 @@ our $VERSION = '1.11';
 	(
 		_child_column	=> '',
 		_dbh			=> '',
+		_skip_columns	=> [],
 		_hash_ref		=> '',
 		_key_column		=> '',
 		_parent_column	=> '',
@@ -103,6 +104,8 @@ our $VERSION = '1.11';
 	sub _select_tree
 	{
 		my($self, $root, $children, $parent_id) = @_;
+		my($skip)	= join('|', $$self{'_key_column'}, $$self{'_child_column'}, $$self{'_parent_column'}, @{$$self{'_skip_columns'} });
+		$skip		= qr/$skip/;
 
 		my($child, $name, $key);
 
@@ -113,7 +116,7 @@ our $VERSION = '1.11';
 
 			for $key (keys %$child)
 			{
-				next if ($key =~ /($$self{'_key_column'}|$$self{'_child_column'}|$$self{'_parent_column'})/);
+				next if ($key =~ /$skip/);
 
 				$$root{$name}{$key} = $$child{$key} if ($$child{$key});
 			}
@@ -308,7 +311,8 @@ C<DBIx::Table2Hash> - Read a database table into a hash
 		table_name    => $table_name,
 		key_column    => 'name',
 		child_column  => 'id',
-		parent_column => 'parent_id'
+		parent_column => 'parent_id',
+		skip_columns  => ['code']
 	) -> select_tree();
 
 =head1 Description
@@ -415,6 +419,16 @@ C<select_tree()>.
 where
 
 The optional where clause, including the word 'where', to add to the select.
+
+=item *
+
+skip_columns
+
+An array ref of column names to ignore when reading the database table.
+
+It defaults to [].
+
+This parameter is optional.
 
 =back
 

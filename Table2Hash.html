@@ -69,7 +69,8 @@
                 table_name    =&gt; $table_name,
                 key_column    =&gt; 'name',
                 child_column  =&gt; 'id',
-                parent_column =&gt; 'parent_id'
+                parent_column =&gt; 'parent_id',
+                skip_columns  =&gt; ['code']
         ) -&gt; select_tree();</pre>
 <p>
 </p>
@@ -144,6 +145,12 @@ value_column
 <li></li>
 where
 <p>The optional where clause, including the word 'where', to add to the select.</p>
+<p></p>
+<li></li>
+skip_columns
+<p>An array ref of column names to ignore when reading the database table.</p>
+<p>It defaults to [].</p>
+<p>This parameter is optional.</p>
 <p></p></ul>
 <p>
 </p>

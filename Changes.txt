@@ -1,5 +1,13 @@
 Revision history for Perl extension DBIx::Table2Hash.
 
+1.12  Sun Mar 23 11:29:00 2003
+	- Add a new constructor/method parameter: skip_columns. This is an
+		array ref of columns names to ignore when calling select_tree()
+	- Patch to stop shipping blib/ directory in Unix distros, because the
+		PAUSE indexer takes this directory to indicate a binary distro,
+		which means it does not index the module, and this in turn means
+		the module is not listed in the CPAN daily update list, etc.
+
 1.11  Sun Jan 26 12:28:00 2003
 	- Add method select_tree(), which reads a table into a nested hash, ie a tree.
 		This tree is suitable for inputting into CGI::Explorer V 2.00
