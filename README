@@ -1,20 +1,23 @@
 NAME
     "DBIx::Table2Hash" - Read a database table into a hash
 
-Version
-    This document refers to version 1.00 of "DBIx::Table2Hash", released
-    8-Jan-2003.
-
 Synopsis
             #!/usr/bin/perl
 
-            my($hash_ref) = DBIx::Table2Hash -> new
+            my($key2value) = DBIx::Table2Hash -> new
             (
                     dbh          => $dbh,
                     table_name   => $table_name,
                     key_column   => 'name',
                     value_column => 'id'
             ) -> select();
+            # or
+            my($key2hashref) = DBIx::Table2Hash -> new
+            (
+                    dbh          => $dbh,
+                    table_name   => $table_name,
+                    key_column   => 'name',
+            ) -> select_hashref();
 
 Description
     "DBIx::Table2Hash" is a pure Perl module.
@@ -24,6 +27,15 @@ Description
 
     The aim is to create a hash which is a simple look-up table. To this
     end, the module allows the key_column to point to an SQL expression.
+
+Distributions
+    This module is available both as a Unix-style distro (*.tgz) and an
+    ActiveState-style distro (*.ppd). The latter is shipped in a *.zip file.
+
+    See http://savage.net.au/Perl-modules.html for details.
+
+    See http://savage.net.au/Perl-modules/html/installing-a-module.html for
+    help on unpacking and installing each type of distro.
 
 Constructor and initialization
     new(...) returns a "DBIx::Table2Hash" object.
@@ -36,9 +48,13 @@ Constructor and initialization
 
         A database handle.
 
+        This parameter is mandatory.
+
     *   table_name
 
         The name of the table to select from.
+
+        This parameter is mandatory.
 
     *   key_column
 
@@ -53,9 +69,14 @@ Constructor and initialization
 
         key_column => "concat(col_a, '-', col_b)"
 
+        This parameter is mandatory.
+
     *   value_column
 
         The name of the column to use for hash values.
+
+        This parameter is mandatory if you are going to call select(), and
+        optional if you are going to call select_hashref().
 
     *   where
 
@@ -73,8 +94,24 @@ Method: select()
     Calling select() actually executes the SQL select statement, and builds
     the hash.
 
+    Each key in the hash points to a single value.
+
+    The demo program test-table2hash.pl, in the examples/ directory, calls
+    select().
+
+Method: select_hashref()
+    Returns a hash ref.
+
+    Calling select_hashref() actually executes the SQL select statement, and
+    builds the hash.
+
+    Each key in the hash points to a hashref.
+
+    The demo program test-table2hash.pl, in the examples/ directory, calls
+    select_hashref().
+
 Required Modules
-    DBI, so you can provide a database handle.
+    Only those shipped with Perl.
 
 Changes
     See Changes.txt.
@@ -88,6 +125,17 @@ FAQ
     back to the database?
 
     A: Sure.
+
+    Q: Do you ship a complete demo, which loads a table and demonstrates the
+    2 methods select() and select_hashref()?
+
+    A: Yes. See the examples/ directory.
+
+    If you installed this module locally via ppm, look in the x86/ directory
+    for the file to unpack.
+
+    If you installed this module remotely via ppm, you need to download and
+    unpack the distro itself.
 
     Q: Are there any other modules with similar capabilities?
 

@@ -1,5 +1,20 @@
 Revision history for Perl extension DBIx::Table2Hash.
 
+1.10  Fri Jan 17 11:01:55 2003
+	- Add method select_hashref() for when you want a hashref associated with
+		each key, where the original method select() just associates a single
+		value with each key. In this case, the constructor parameter
+		value_column is ignored, and can be omitted
+	- Change the sanity checks and error messages, now that value_column can
+		be an optional parameter
+	- Add an directory ,examples/, with a complete program which loads a table
+		from a text file into the test database, and calls select_hashref()
+		and select() to display the data. This demo also shows the way to use
+		exception handling, and suggests one way to corrupt the source code
+		in order to trigger an exception with die rather than with throw
+	- Update the docs
+	- Change use CGI; to use Carp;. So much for my scrupulous testing regime
+
 1.00  Sat Jan  4 12:37:29 2003
 	- original version; created by h2xs 1.20 with options
 		-A -X -f -n DBIx::Table2Hash -v 1.00

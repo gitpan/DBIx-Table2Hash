@@ -31,7 +31,7 @@ package DBIx::Table2Hash;
 use strict;
 use warnings;
 
-use CGI;
+use Carp;
 
 require 5.005_62;
 
@@ -55,7 +55,7 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw(
 
 );
-our $VERSION = '1.00';
+our $VERSION = '1.10';
 
 # -----------------------------------------------
 
@@ -115,8 +115,8 @@ sub new
 		}
 	}
 
-	croak(__PACKAGE__ . ". You must supply a value for each parameter except 'where'")
-		if (! ($$self{'_dbh'} && $$self{'_key_column'} && $$self{'_table_name'} && $$self{'_value_column'}) );
+	croak(__PACKAGE__ . '. You must supply a value for the parameters dbh, key_column and table_name')
+		if (! ($$self{'_dbh'} && $$self{'_key_column'} && $$self{'_table_name'}) );
 
 	return $self;
 
@@ -127,6 +127,10 @@ sub new
 sub select
 {
 	my($self)	= @_;
+
+	croak(__PACKAGE__ . '. You must supply a value for the parameter value_column')
+		if (! $$self{'_value_column'});
+
 	my($sql)	= "select $$self{'_key_column'}, $$self{'_value_column'} from $$self{'_table_name'} $$self{'_where'}";
 	my($sth)	= $$self{'_dbh'} -> prepare($sql);
 
@@ -145,6 +149,27 @@ sub select
 
 # -----------------------------------------------
 
+sub select_hashref
+{
+	my($self)	= @_;
+	my($sql)	= "select * from $$self{'_table_name'} $$self{'_where'}";
+	my($sth)	= $$self{'_dbh'} -> prepare($sql);
+
+	$sth -> execute();
+
+	my($data, %h);
+
+	while ($data = $sth -> fetchrow_hashref() )
+	{
+		$h{$$data{$$self{'_key_column'} } } = {%$data} if (defined $$data{$$self{'_key_column'} });
+	}
+
+	\%h;
+
+}	# End of select_hashref.
+
+# -----------------------------------------------
+
 1;
 
 __END__
@@ -153,21 +178,24 @@ __END__
 
 C<DBIx::Table2Hash> - Read a database table into a hash
 
-=head1 Version
-
-This document refers to version 1.00 of C<DBIx::Table2Hash>, released 8-Jan-2003.
-
 =head1 Synopsis
 
 	#!/usr/bin/perl
 
-	my($hash_ref) = DBIx::Table2Hash -> new
+	my($key2value) = DBIx::Table2Hash -> new
 	(
 		dbh          => $dbh,
 		table_name   => $table_name,
 		key_column   => 'name',
 		value_column => 'id'
 	) -> select();
+	# or
+	my($key2hashref) = DBIx::Table2Hash -> new
+	(
+		dbh          => $dbh,
+		table_name   => $table_name,
+		key_column   => 'name',
+	) -> select_hashref();
 
 =head1 Description
 
@@ -177,6 +205,16 @@ This module reads a database table and stores keys and values in a hash. The res
 
 The aim is to create a hash which is a simple look-up table. To this end, the module allows the key_column to point to
 an SQL expression.
+
+=head1 Distributions
+
+This module is available both as a Unix-style distro (*.tgz) and an
+ActiveState-style distro (*.ppd). The latter is shipped in a *.zip file.
+
+See http://savage.net.au/Perl-modules.html for details.
+
+See http://savage.net.au/Perl-modules/html/installing-a-module.html for
+help on unpacking and installing each type of distro.
 
 =head1 Constructor and initialization
 
@@ -194,11 +232,15 @@ dbh
 
 A database handle.
 
+This parameter is mandatory.
+
 =item *
 
 table_name
 
 The name of the table to select from.
+
+This parameter is mandatory.
 
 =item *
 
@@ -214,11 +256,16 @@ or, even fancier,
 
 key_column => "concat(col_a, '-', col_b)"
 
+This parameter is mandatory.
+
 =item *
 
 value_column
 
 The name of the column to use for hash values.
+
+This parameter is mandatory if you are going to call select(), and optional if you are going to call
+select_hashref().
 
 =item *
 
@@ -240,9 +287,23 @@ Returns a hash ref.
 
 Calling select() actually executes the SQL select statement, and builds the hash.
 
+Each key in the hash points to a single value.
+
+The demo program test-table2hash.pl, in the examples/ directory, calls select().
+
+=head1 Method: select_hashref()
+
+Returns a hash ref.
+
+Calling select_hashref() actually executes the SQL select statement, and builds the hash.
+
+Each key in the hash points to a hashref.
+
+The demo program test-table2hash.pl, in the examples/ directory, calls select_hashref().
+
 =head1 Required Modules
 
-DBI, so you can provide a database handle.
+Only those shipped with Perl.
 
 =head1 Changes
 
@@ -257,6 +318,14 @@ A: To be able to restore a hash from a database rather than from a file.
 Q: Can your other module C<DBIx::Hash2Table> be used to save the hash back to the database?
 
 A: Sure.
+
+Q: Do you ship a complete demo, which loads a table and demonstrates the 2 methods select() and select_hashref()?
+
+A: Yes. See the examples/ directory.
+
+If you installed this module locally via ppm, look in the x86/ directory for the file to unpack.
+
+If you installed this module remotely via ppm, you need to download and unpack the distro itself.
 
 Q: Are there any other modules with similar capabilities?
 

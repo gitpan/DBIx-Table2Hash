@@ -13,12 +13,13 @@
 <ul>
 
 	<li><a href="#name">NAME</a></li>
-	<li><a href="#version">Version</a></li>
 	<li><a href="#synopsis">Synopsis</a></li>
 	<li><a href="#description">Description</a></li>
+	<li><a href="#distributions">Distributions</a></li>
 	<li><a href="#constructor_and_initialization">Constructor and initialization</a></li>
 	<li><a href="#method:_new(...)">Method: <code>new(...)</code></a></li>
 	<li><a href="#method:_select()">Method: <code>select()</code></a></li>
+	<li><a href="#method:_select_hashref()">Method: <code>select_hashref()</code></a></li>
 	<li><a href="#required_modules">Required Modules</a></li>
 	<li><a href="#changes">Changes</a></li>
 	<li><a href="#faq">FAQ</a></li>
@@ -35,22 +36,24 @@
 <p>
 </p>
 <hr />
-<h1><a name="version">Version</a></h1>
-<p>This document refers to version 1.00 of <code>DBIx::Table2Hash</code>, released 8-Jan-2003.</p>
-<p>
-</p>
-<hr />
 <h1><a name="synopsis">Synopsis</a></h1>
 <pre>
         #!/usr/bin/perl</pre>
 <pre>
-        my($hash_ref) = DBIx::Table2Hash -&gt; new
+        my($key2value) = DBIx::Table2Hash -&gt; new
         (
                 dbh          =&gt; $dbh,
                 table_name   =&gt; $table_name,
                 key_column   =&gt; 'name',
                 value_column =&gt; 'id'
-        ) -&gt; select();</pre>
+        ) -&gt; select();
+        # or
+        my($key2hashref) = DBIx::Table2Hash -&gt; new
+        (
+                dbh          =&gt; $dbh,
+                table_name   =&gt; $table_name,
+                key_column   =&gt; 'name',
+        ) -&gt; select_hashref();</pre>
 <p>
 </p>
 <hr />
@@ -62,6 +65,15 @@ an SQL expression.</p>
 <p>
 </p>
 <hr />
+<h1><a name="distributions">Distributions</a></h1>
+<p>This module is available both as a Unix-style distro (*.tgz) and an
+ActiveState-style distro (*.ppd). The latter is shipped in a *.zip file.</p>
+<p>See <a href="http://savage.net.au/Perl-modules.html">http://savage.net.au/Perl-modules.html</a> for details.</p>
+<p>See <a href="http://savage.net.au/Perl-modules/html/installing-a-module.html">http://savage.net.au/Perl-modules/html/installing-a-module.html</a> for
+help on unpacking and installing each type of distro.</p>
+<p>
+</p>
+<hr />
 <h1><a name="constructor_and_initialization">Constructor and initialization</a></h1>
 <p><code>new(...)</code> returns a <code>DBIx::Table2Hash</code> object.</p>
 <p>This is the class's contructor.</p>
@@ -70,10 +82,12 @@ an SQL expression.</p>
 <li></li>
 dbh
 <p>A database handle.</p>
+<p>This parameter is mandatory.</p>
 <p></p>
 <li></li>
 table_name
 <p>The name of the table to select from.</p>
+<p>This parameter is mandatory.</p>
 <p></p>
 <li></li>
 key_column
@@ -82,10 +96,13 @@ key_column
 <p>key_column =&gt; 'concat(col_a, col_b)'</p>
 <p>or, even fancier,</p>
 <p>key_column =&gt; ``concat(col_a, '-', col_b)''</p>
+<p>This parameter is mandatory.</p>
 <p></p>
 <li></li>
 value_column
 <p>The name of the column to use for hash values.</p>
+<p>This parameter is mandatory if you are going to call select(), and optional if you are going to call
+select_hashref().</p>
 <p></p>
 <li></li>
 where
@@ -103,11 +120,21 @@ where
 <h1><a name="method:_select()">Method: <code>select()</code></a></h1>
 <p>Returns a hash ref.</p>
 <p>Calling <code>select()</code> actually executes the SQL select statement, and builds the hash.</p>
+<p>Each key in the hash points to a single value.</p>
+<p>The demo program test-table2hash.pl, in the examples/ directory, calls select().</p>
+<p>
+</p>
+<hr />
+<h1><a name="method:_select_hashref()">Method: <code>select_hashref()</code></a></h1>
+<p>Returns a hash ref.</p>
+<p>Calling <code>select_hashref()</code> actually executes the SQL select statement, and builds the hash.</p>
+<p>Each key in the hash points to a hashref.</p>
+<p>The demo program test-table2hash.pl, in the examples/ directory, calls select_hashref().</p>
 <p>
 </p>
 <hr />
 <h1><a name="required_modules">Required Modules</a></h1>
-<p>DBI, so you can provide a database handle.</p>
+<p>Only those shipped with Perl.</p>
 <p>
 </p>
 <hr />
@@ -121,6 +148,10 @@ where
 <p>A: To be able to restore a hash from a database rather than from a file.</p>
 <p>Q: Can your other module <code>DBIx::Hash2Table</code> be used to save the hash back to the database?</p>
 <p>A: Sure.</p>
+<p>Q: Do you ship a complete demo, which loads a table and demonstrates the 2 methods <code>select()</code> and select_hashref()?</p>
+<p>A: Yes. See the examples/ directory.</p>
+<p>If you installed this module locally via ppm, look in the x86/ directory for the file to unpack.</p>
+<p>If you installed this module remotely via ppm, you need to download and unpack the distro itself.</p>
 <p>Q: Are there any other modules with similar capabilities?</p>
 <p>A: Yes:</p>
 <ul>

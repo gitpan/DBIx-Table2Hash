@@ -1,6 +1,6 @@
-test.pl
-Makefile.PL
 Changes.txt
+Makefile.PL
+test.pl
 Table2Hash.pm
 pm_to_blib
 Table2Hash.html
@@ -12,4 +12,6 @@ blib/arch/auto/DBIx/Table2Hash/.exists
 blib/lib/auto/DBIx/Table2Hash/.exists
 blib/lib/DBIx/.exists
 blib/lib/DBIx/Table2Hash.pm
+examples/industry.txt
+examples/test-table2hash.pl
 t/test.t
