@@ -1,5 +1,11 @@
 Revision history for Perl extension DBIx::Table2Hash.
 
+1.13  Tue Jul 20 20:43:00 2004
+	- Change Makefile.PL to coexist with Module::Build
+	- Delete ./test.pl
+	- Delete 'use Data::Dumper;' from Table2Hash.pm, left over from testing
+	- Add t/pod.t to test all PODs
+
 1.12  Sun Mar 23 11:29:00 2003
 	- Add a new constructor/method parameter: skip_columns. This is an
 		array ref of columns names to ignore when calling select_tree()
