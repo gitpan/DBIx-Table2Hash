@@ -4,29 +4,49 @@ NAME
 Synopsis
             #!/usr/bin/perl
 
+            use DBIx::Table2Hash;
+
             my($key2value) = DBIx::Table2Hash -> new
             (
-                    dbh          => $dbh,
-                    table_name   => $table_name,
-                    key_column   => 'name',
-                    value_column => 'id'
+                    dbh           => $dbh,
+                    table_name    => $table_name,
+                    key_column    => 'name',
+                    value_column  => 'id'
             ) -> select();
+
             # or
+
             my($key2hashref) = DBIx::Table2Hash -> new
             (
-                    dbh          => $dbh,
-                    table_name   => $table_name,
-                    key_column   => 'name',
+                    dbh           => $dbh,
+                    table_name    => $table_name,
+                    key_column    => 'name',
             ) -> select_hashref();
+
+            # or
+
+            my($key2tree) = DBIx::Table2Hash -> new
+            (
+                    dbh           => $dbh,
+                    table_name    => $table_name,
+                    key_column    => 'name',
+                    child_column  => 'id',
+                    parent_column => 'parent_id'
+            ) -> select_tree();
 
 Description
     "DBIx::Table2Hash" is a pure Perl module.
 
     This module reads a database table and stores keys and values in a hash.
-    The resultant hash is not nested in any way.
 
     The aim is to create a hash which is a simple look-up table. To this
     end, the module allows the key_column to point to an SQL expression.
+
+    "select()" and "select_hashref()" do not nest the hash in any way.
+
+    "select_tree()" returns a nested hash. "select_tree()" will call
+    "select_hashref()" if necessary, ie if you have not called
+    "select_hashref()" first.
 
 Distributions
     This module is available both as a Unix-style distro (*.tgz) and an
@@ -44,6 +64,10 @@ Constructor and initialization
 
     Parameters:
 
+    Note: These parameters are not checked until you call "select_*()",
+    which means the parameters can be passed in to "new()", "select_*()", or
+    both.
+
     *   dbh
 
         A database handle.
@@ -58,7 +82,9 @@ Constructor and initialization
 
     *   key_column
 
-        The name of the column, or SQL expression, to use for hash keys.
+        When calling "select()", "select_hashref()" and "select_tree()",
+        this is the name of the database column, or the SQL expression, to
+        use for hash keys.
 
         Say you have 2 columns, called col_a and col_b. Then you can
         concatenate them with:
@@ -71,12 +97,30 @@ Constructor and initialization
 
         This parameter is mandatory.
 
+    *   child_column
+
+        When calling "select_tree()", this is the name of the database
+        column which, combined with the parent_column column, defines the
+        relationship between nodes and their children.
+
+        This parameter is mandatory if you call "select_tree()", and ignored
+        if you call "select()" or "select_hashref()".
+
+    *   parent_column
+
+        When calling "select_tree()", this is the name of the database
+        column which, combined with the child_column column, defines the
+        relationship between nodes and their children.
+
+        This parameter is mandatory if you call "select_tree()", and ignored
+        if you call "select()" or "select_hashref()".
+
     *   value_column
 
-        The name of the column to use for hash values.
+        The name of the database column to use for hash values.
 
-        This parameter is mandatory if you are going to call select(), and
-        optional if you are going to call select_hashref().
+        This parameter is mandatory if you call "select()", and ignored if
+        you call "select_hashref()" or "select_tree()".
 
     *   where
 
@@ -88,27 +132,56 @@ Method: new(...)
 
     See above, in the section called 'Constructor and initialization'.
 
-Method: select()
+Method: select(%parameter)
     Returns a hash ref.
-
-    Calling select() actually executes the SQL select statement, and builds
-    the hash.
 
     Each key in the hash points to a single value.
 
-    The demo program test-table2hash.pl, in the examples/ directory, calls
-    select().
+    Named parameters, as documented above, can be passed in to this method.
 
-Method: select_hashref()
-    Returns a hash ref.
-
-    Calling select_hashref() actually executes the SQL select statement, and
+    Calling "select()" actually executes the SQL select statement, and
     builds the hash.
+
+    The demo program test-table2hash.pl, in the examples/ directory, calls
+    "select()".
+
+Method: select_hashref(%parameter)
+    Returns a hash ref.
 
     Each key in the hash points to a hashref.
 
+    Named parameters, as documented above, can be passed in to this method.
+
+    Calling "select_hashref()" actually executes the SQL select statement,
+    and builds the hash.
+
     The demo program test-table2hash.pl, in the examples/ directory, calls
-    select_hashref().
+    "select_hashref()".
+
+Method: select_tree(%parameter)
+    Returns a hash ref.
+
+    Each key in the hash points to a hashref.
+
+    Named parameters, as documented above, can be passed in to this method.
+
+    Calling "select_tree()" automatically calls "select_hashref()", if you
+    have not already called "select_hashref()".
+
+    The demo program test-table2tree.pl, in the examples/ directory, calls
+    "select_tree()".
+
+DBIx::Table2Hash and CGI::Explorer
+    The method "select_tree()" can obviously return a hash with multiple
+    keys at the root level, depending on the contents of the database table.
+
+    Such a hash cannot be passed in to CGI::Explorer V 2.00+. Here's a way
+    around this restriction: Create, on the fly, a hash key which is The
+    Mother of All Roots. Eg:
+
+            my($t2h)  = DBIx::Table2Hash -> new(...);
+            my($tree) = $t2h -> select_tree(...);
+            my($exp)  = CGI::Explorer -> new(...) -> from_hash(hashref => {OneAndOnly => $tree});
 
 Required Modules
     Only those shipped with Perl.
@@ -119,15 +192,19 @@ Changes
 FAQ
     Q: What is the point of this module?
 
-    A: To be able to restore a hash from a database rather than from a file.
+    A 1: To be able to restore a hash from a database rather than from a
+    file.
+
+    A 2: To be able to construct, from a database table, a hash suitable for
+    passing in to CGI::Explorer V 2.00.
 
     Q: Can your other module "DBIx::Hash2Table" be used to save the hash
     back to the database?
 
     A: Sure.
 
-    Q: Do you ship a complete demo, which loads a table and demonstrates the
-    2 methods select() and select_hashref()?
+    Q: Do you ship demos for the 3 methods "select()", "select_hashref()"
+    and "select_tree()"?
 
     A: Yes. See the examples/ directory.
 
@@ -171,8 +248,7 @@ FAQ
 
     *   "DBIx::Tree"
 
-        This module is more like the inverse of "DBIx::Hash2Table", in that
-        it assumes you are building a nested hash.
+        This module was the inspiration for "select_tree()".
 
         As it reads the database table it calls a call-back sub, which you
         use to process the rows of the table.

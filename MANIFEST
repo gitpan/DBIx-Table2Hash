@@ -1,11 +1,11 @@
-Changes.txt
+MANIFEST
+README
 Makefile.PL
 test.pl
+Changes.txt
 Table2Hash.pm
 pm_to_blib
 Table2Hash.html
-MANIFEST
-README
 blib/html/site/lib/DBIx/Table2Hash.html
 blib/man3/.exists
 blib/arch/auto/DBIx/Table2Hash/.exists
@@ -14,4 +14,5 @@ blib/lib/DBIx/.exists
 blib/lib/DBIx/Table2Hash.pm
 examples/industry.txt
 examples/test-table2hash.pl
+examples/test-table2tree.pl
 t/test.t

@@ -1,5 +1,18 @@
 Revision history for Perl extension DBIx::Table2Hash.
 
+1.11  Sun Jan 26 12:28:00 2003
+	- Add method select_tree(), which reads a table into a nested hash, ie a tree.
+		This tree is suitable for inputting into CGI::Explorer V 2.00
+		(forthcoming), as long as the tree has a single root.
+		Note: select_tree() is an alternative to the fine module DBIx::Tree
+	- Add a new demo, test-table2tree.pl, to demonstrate select_tree().
+		Note: The database table for this demo is created by test-hash2table.pl,
+		the demo which ships with DBIx::Hash2Table
+	- Fix bug so select_hashref() - and now select_tree() - can take an SQL
+		expression for the value of the key_column parameter.
+		Previously, only select() would work when you tried this.
+	- Update docs
+
 1.10  Fri Jan 17 11:01:55 2003
 	- Add method select_hashref() for when you want a hashref associated with
 		each key, where the original method select() just associates a single

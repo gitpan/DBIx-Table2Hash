@@ -18,8 +18,10 @@
 	<li><a href="#distributions">Distributions</a></li>
 	<li><a href="#constructor_and_initialization">Constructor and initialization</a></li>
 	<li><a href="#method:_new(...)">Method: <code>new(...)</code></a></li>
-	<li><a href="#method:_select()">Method: <code>select()</code></a></li>
-	<li><a href="#method:_select_hashref()">Method: <code>select_hashref()</code></a></li>
+	<li><a href="#method:_select(%parameter)">Method: <code>select(%parameter)</code></a></li>
+	<li><a href="#method:_select_hashref(%parameter)">Method: <code>select_hashref(%parameter)</code></a></li>
+	<li><a href="#method:_select_tree(%parameter)">Method: <code>select_tree(%parameter)</code></a></li>
+	<li><a href="#dbix::table2hash_and_cgi::explorer">DBIx::Table2Hash and CGI::Explorer</a></li>
 	<li><a href="#required_modules">Required Modules</a></li>
 	<li><a href="#changes">Changes</a></li>
 	<li><a href="#faq">FAQ</a></li>
@@ -40,28 +42,46 @@
 <pre>
         #!/usr/bin/perl</pre>
 <pre>
+        use DBIx::Table2Hash;</pre>
+<pre>
         my($key2value) = DBIx::Table2Hash -&gt; new
         (
-                dbh          =&gt; $dbh,
-                table_name   =&gt; $table_name,
-                key_column   =&gt; 'name',
-                value_column =&gt; 'id'
-        ) -&gt; select();
-        # or
+                dbh           =&gt; $dbh,
+                table_name    =&gt; $table_name,
+                key_column    =&gt; 'name',
+                value_column  =&gt; 'id'
+        ) -&gt; select();</pre>
+<pre>
+        # or</pre>
+<pre>
         my($key2hashref) = DBIx::Table2Hash -&gt; new
         (
-                dbh          =&gt; $dbh,
-                table_name   =&gt; $table_name,
-                key_column   =&gt; 'name',
+                dbh           =&gt; $dbh,
+                table_name    =&gt; $table_name,
+                key_column    =&gt; 'name',
         ) -&gt; select_hashref();</pre>
+<pre>
+        # or</pre>
+<pre>
+        my($key2tree) = DBIx::Table2Hash -&gt; new
+        (
+                dbh           =&gt; $dbh,
+                table_name    =&gt; $table_name,
+                key_column    =&gt; 'name',
+                child_column  =&gt; 'id',
+                parent_column =&gt; 'parent_id'
+        ) -&gt; select_tree();</pre>
 <p>
 </p>
 <hr />
 <h1><a name="description">Description</a></h1>
 <p><code>DBIx::Table2Hash</code> is a pure Perl module.</p>
-<p>This module reads a database table and stores keys and values in a hash. The resultant hash is not nested in any way.</p>
+<p>This module reads a database table and stores keys and values in a hash.</p>
 <p>The aim is to create a hash which is a simple look-up table. To this end, the module allows the key_column to point to
 an SQL expression.</p>
+<p><code>select()</code> and <code>select_hashref()</code> do not nest the hash in any way.</p>
+<p><code>select_tree()</code> returns a nested hash. <code>select_tree()</code> will call <code>select_hashref()</code> if necessary, ie
+if you have not called <code>select_hashref()</code> first.</p>
 <p>
 </p>
 <hr />
@@ -78,6 +98,8 @@ help on unpacking and installing each type of distro.</p>
 <p><code>new(...)</code> returns a <code>DBIx::Table2Hash</code> object.</p>
 <p>This is the class's contructor.</p>
 <p>Parameters:</p>
+<p>Note: These parameters are not checked until you call <code>select_*()</code>, which means the parameters can be passed
+in to <code>new()</code>, <code>select_*()</code>, or both.</p>
 <ul>
 <li></li>
 dbh
@@ -91,7 +113,8 @@ table_name
 <p></p>
 <li></li>
 key_column
-<p>The name of the column, or SQL expression, to use for hash keys.</p>
+<p>When calling <code>select()</code>, <code>select_hashref()</code> and <code>select_tree()</code>, this is the name of the database column,
+or the SQL expression, to use for hash keys.</p>
 <p>Say you have 2 columns, called col_a and col_b. Then you can concatenate them with:</p>
 <p>key_column =&gt; 'concat(col_a, col_b)'</p>
 <p>or, even fancier,</p>
@@ -99,10 +122,24 @@ key_column
 <p>This parameter is mandatory.</p>
 <p></p>
 <li></li>
+child_column
+<p>When calling <code>select_tree()</code>, this is the name of the database column which, combined with the
+parent_column column, defines the relationship between nodes and their children.</p>
+<p>This parameter is mandatory if you call <code>select_tree()</code>, and ignored if you call <code>select()</code> or
+<code>select_hashref()</code>.</p>
+<p></p>
+<li></li>
+parent_column
+<p>When calling <code>select_tree()</code>, this is the name of the database column which, combined with the
+child_column column, defines the relationship between nodes and their children.</p>
+<p>This parameter is mandatory if you call <code>select_tree()</code>, and ignored if you call <code>select()</code> or
+<code>select_hashref()</code>.</p>
+<p></p>
+<li></li>
 value_column
-<p>The name of the column to use for hash values.</p>
-<p>This parameter is mandatory if you are going to call select(), and optional if you are going to call
-select_hashref().</p>
+<p>The name of the database column to use for hash values.</p>
+<p>This parameter is mandatory if you call <code>select()</code>, and ignored if you call <code>select_hashref()</code> or
+<code>select_tree()</code>.</p>
 <p></p>
 <li></li>
 where
@@ -117,19 +154,43 @@ where
 <p>
 </p>
 <hr />
-<h1><a name="method:_select()">Method: <code>select()</code></a></h1>
+<h1><a name="method:_select(%parameter)">Method: <code>select(%parameter)</code></a></h1>
 <p>Returns a hash ref.</p>
-<p>Calling <code>select()</code> actually executes the SQL select statement, and builds the hash.</p>
 <p>Each key in the hash points to a single value.</p>
-<p>The demo program test-table2hash.pl, in the examples/ directory, calls select().</p>
+<p>Named parameters, as documented above, can be passed in to this method.</p>
+<p>Calling <code>select()</code> actually executes the SQL select statement, and builds the hash.</p>
+<p>The demo program test-table2hash.pl, in the examples/ directory, calls <code>select()</code>.</p>
 <p>
 </p>
 <hr />
-<h1><a name="method:_select_hashref()">Method: <code>select_hashref()</code></a></h1>
+<h1><a name="method:_select_hashref(%parameter)">Method: <code>select_hashref(%parameter)</code></a></h1>
 <p>Returns a hash ref.</p>
-<p>Calling <code>select_hashref()</code> actually executes the SQL select statement, and builds the hash.</p>
 <p>Each key in the hash points to a hashref.</p>
-<p>The demo program test-table2hash.pl, in the examples/ directory, calls select_hashref().</p>
+<p>Named parameters, as documented above, can be passed in to this method.</p>
+<p>Calling <code>select_hashref()</code> actually executes the SQL select statement, and builds the hash.</p>
+<p>The demo program test-table2hash.pl, in the examples/ directory, calls <code>select_hashref()</code>.</p>
+<p>
+</p>
+<hr />
+<h1><a name="method:_select_tree(%parameter)">Method: <code>select_tree(%parameter)</code></a></h1>
+<p>Returns a hash ref.</p>
+<p>Each key in the hash points to a hashref.</p>
+<p>Named parameters, as documented above, can be passed in to this method.</p>
+<p>Calling <code>select_tree()</code> automatically calls <code>select_hashref()</code>, if you have not already called
+<code>select_hashref()</code>.</p>
+<p>The demo program test-table2tree.pl, in the examples/ directory, calls <code>select_tree()</code>.</p>
+<p>
+</p>
+<hr />
+<h1><a name="dbix::table2hash_and_cgi::explorer">DBIx::Table2Hash and CGI::Explorer</a></h1>
+<p>The method <code>select_tree()</code> can obviously return a hash with multiple keys at the root level, depending on
+the contents of the database table.</p>
+<p>Such a hash cannot be passed in to CGI::Explorer V 2.00+. Here's a way around this restriction: Create, on
+the fly, a hash key which is The Mother of All Roots. Eg:</p>
+<pre>
+        my($t2h)  = DBIx::Table2Hash -&gt; new(...);
+        my($tree) = $t2h -&gt; select_tree(...);
+        my($exp)  = CGI::Explorer -&gt; new(...) -&gt; from_hash(hashref =&gt; {OneAndOnly =&gt; $tree});</pre>
 <p>
 </p>
 <hr />
@@ -145,10 +206,11 @@ where
 <hr />
 <h1><a name="faq">FAQ</a></h1>
 <p>Q: What is the point of this module?</p>
-<p>A: To be able to restore a hash from a database rather than from a file.</p>
+<p>A 1: To be able to restore a hash from a database rather than from a file.</p>
+<p>A 2: To be able to construct, from a database table, a hash suitable for passing in to CGI::Explorer V 2.00.</p>
 <p>Q: Can your other module <code>DBIx::Hash2Table</code> be used to save the hash back to the database?</p>
 <p>A: Sure.</p>
-<p>Q: Do you ship a complete demo, which loads a table and demonstrates the 2 methods <code>select()</code> and select_hashref()?</p>
+<p>Q: Do you ship demos for the 3 methods <code>select()</code>, <code>select_hashref()</code> and <code>select_tree()</code>?</p>
 <p>A: Yes. See the examples/ directory.</p>
 <p>If you installed this module locally via ppm, look in the x86/ directory for the file to unpack.</p>
 <p>If you installed this module remotely via ppm, you need to download and unpack the distro itself.</p>
@@ -173,7 +235,7 @@ and other 'funny' characters, eg '&amp;' (both of which I have to deal with unde
 <p></p>
 <li></li>
 <code>DBIx::Tree</code>
-<p>This module is more like the inverse of <code>DBIx::Hash2Table</code>, in that it assumes you are building a nested hash.</p>
+<p>This module was the inspiration for <code>select_tree()</code>.</p>
 <p>As it reads the database table it calls a call-back sub, which you use to process the rows of the table.</p>
 <p></p></ul>
 <p>

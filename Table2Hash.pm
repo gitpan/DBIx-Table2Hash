@@ -37,6 +37,8 @@ require 5.005_62;
 
 require Exporter;
 
+use Data::Dumper;
+
 our @ISA = qw(Exporter);
 
 # Items to export into callers namespace by default. Note: do not export
@@ -55,7 +57,7 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw(
 
 );
-our $VERSION = '1.10';
+our $VERSION = '1.11';
 
 # -----------------------------------------------
 
@@ -68,8 +70,11 @@ our $VERSION = '1.10';
 {
 	my(%_attr_data) =
 	(
+		_child_column	=> '',
 		_dbh			=> '',
+		_hash_ref		=> '',
 		_key_column		=> '',
+		_parent_column	=> '',
 		_table_name		=> '',
 		_value_column	=> '',
 		_where			=> '',
@@ -82,11 +87,48 @@ our $VERSION = '1.10';
 		$_attr_data{$attr_name};
 	}
 
+	sub _get_column_names
+	{
+		my($self, $table_name) = @_;
+		my($sth) = $$self{'_dbh'} -> prepare("select * from $table_name where 1=2");
+
+		$sth -> execute();
+
+		$$self{'_column_name'} = $$sth{'NAME_lc'};
+
+		$sth -> finish();
+
+	}	# End of _get_column_names.
+
+	sub _select_tree
+	{
+		my($self, $root, $children, $parent_id) = @_;
+
+		my($child, $name, $key);
+
+		for my $child (@{$$children{$parent_id} })
+		{
+			$name			= $$child{$$self{'_key_column'} };
+			$$root{$name}	= {};
+
+			for $key (keys %$child)
+			{
+				next if ($key =~ /($$self{'_key_column'}|$$self{'_child_column'}|$$self{'_parent_column'})/);
+
+				$$root{$name}{$key} = $$child{$key} if ($$child{$key});
+			}
+
+			$self -> _select_tree($$root{$$child{$$self{'_key_column'} } }, $children, $$child{$$self{'_child_column'}});
+		}
+
+	}	# End of _select_tree.
+
 	sub _standard_keys
 	{
 		keys %_attr_data;
 	}
-}
+
+}	# End of encapsulated class data.
 
 # -----------------------------------------------
 
@@ -115,9 +157,6 @@ sub new
 		}
 	}
 
-	croak(__PACKAGE__ . '. You must supply a value for the parameters dbh, key_column and table_name')
-		if (! ($$self{'_dbh'} && $$self{'_key_column'} && $$self{'_table_name'}) );
-
 	return $self;
 
 }	# End of new.
@@ -126,13 +165,15 @@ sub new
 
 sub select
 {
-	my($self)	= @_;
+	my($self, %arg) = @_;
 
-	croak(__PACKAGE__ . '. You must supply a value for the parameter value_column')
-		if (! $$self{'_value_column'});
+	$self -> set(%arg);
 
-	my($sql)	= "select $$self{'_key_column'}, $$self{'_value_column'} from $$self{'_table_name'} $$self{'_where'}";
-	my($sth)	= $$self{'_dbh'} -> prepare($sql);
+	croak(__PACKAGE__ . '. You must supply a value for the parameters dbh, table_name, key_column and value_column')
+		if (! ($$self{'_dbh'} && $$self{'_table_name'} && $$self{'_key_column'} && $$self{'_value_column'}) );
+
+	my($sql) = "select $$self{'_key_column'}, $$self{'_value_column'} from $$self{'_table_name'} $$self{'_where'}";
+	my($sth) = $$self{'_dbh'} -> prepare($sql);
 
 	$sth -> execute();
 
@@ -143,7 +184,7 @@ sub select
 		$h{$$data[0]} = $$data[1] if (defined $$data[0]);
 	}
 
-	\%h;
+	$$self{'_hash_ref'} = \%h;
 
 }	# End of select.
 
@@ -151,9 +192,24 @@ sub select
 
 sub select_hashref
 {
-	my($self)	= @_;
-	my($sql)	= "select * from $$self{'_table_name'} $$self{'_where'}";
-	my($sth)	= $$self{'_dbh'} -> prepare($sql);
+	my($self, %arg) = @_;
+
+	$self -> set(%arg);
+
+	croak(__PACKAGE__ . '. You must supply a value for the parameters dbh, table_name and key_column')
+		if (! ($$self{'_dbh'} && $$self{'_table_name'} && $$self{'_key_column'}) );
+
+	$self -> _get_column_names($$self{'_table_name'});
+
+	my(%column_name);
+
+	@column_name{@{$$self{'_column_name'} } } = (1) x @{$$self{'_column_name'} };
+
+	# Due to a bug in MySQL, we cannot say 'col, *', we must say '*, col'.
+
+	my($column_set)	= $column_name{lc $$self{'_key_column'} } ? '*' : "*, $$self{'_key_column'}";
+	my($sql)		= "select $column_set from $$self{'_table_name'} $$self{'_where'}";
+	my($sth)		= $$self{'_dbh'} -> prepare($sql);
 
 	$sth -> execute();
 
@@ -164,9 +220,52 @@ sub select_hashref
 		$h{$$data{$$self{'_key_column'} } } = {%$data} if (defined $$data{$$self{'_key_column'} });
 	}
 
-	\%h;
+	$$self{'_hash_ref'} = \%h;
 
 }	# End of select_hashref.
+
+# -----------------------------------------------
+
+sub select_tree
+{
+	my($self, %arg) = @_;
+
+	$self -> set(%arg);
+
+	croak(__PACKAGE__ . '. You must supply a value for the parameters child_column and parent_column')
+		if (! ($$self{'_child_column'} && $$self{'_parent_column'}) );
+
+	$self -> select_hashref() if (! $$self{'_hash_ref'});
+
+	my($id, $parent_id, %children);
+
+	for $id (keys %{$$self{'_hash_ref'} })
+	{
+		$parent_id				= $$self{'_hash_ref'}{$id}{$$self{'_parent_column'} };
+		$children{$parent_id}	= [] if (! $children{$parent_id});
+		push @{$children{$parent_id} }, $$self{'_hash_ref'}{$id};
+	}
+
+	my($tree) = {};
+
+	$self -> _select_tree($tree, \%children, 0);
+
+	$tree;
+
+}	# End of select_tree.
+
+# -----------------------------------------------
+
+sub set
+{
+	my($self, %arg) = @_;
+
+	for my $arg (keys %arg)
+	{
+		$$self{"_$arg"} = $arg{$arg} if (exists($$self{"_$arg"}) );
+	}
+
+}	# End of set.
 
 # -----------------------------------------------
 
@@ -182,29 +281,49 @@ C<DBIx::Table2Hash> - Read a database table into a hash
 
 	#!/usr/bin/perl
 
+	use DBIx::Table2Hash;
+
 	my($key2value) = DBIx::Table2Hash -> new
 	(
-		dbh          => $dbh,
-		table_name   => $table_name,
-		key_column   => 'name',
-		value_column => 'id'
+		dbh           => $dbh,
+		table_name    => $table_name,
+		key_column    => 'name',
+		value_column  => 'id'
 	) -> select();
+
 	# or
+
 	my($key2hashref) = DBIx::Table2Hash -> new
 	(
-		dbh          => $dbh,
-		table_name   => $table_name,
-		key_column   => 'name',
+		dbh           => $dbh,
+		table_name    => $table_name,
+		key_column    => 'name',
 	) -> select_hashref();
+
+	# or
+
+	my($key2tree) = DBIx::Table2Hash -> new
+	(
+		dbh           => $dbh,
+		table_name    => $table_name,
+		key_column    => 'name',
+		child_column  => 'id',
+		parent_column => 'parent_id'
+	) -> select_tree();
 
 =head1 Description
 
 C<DBIx::Table2Hash> is a pure Perl module.
 
-This module reads a database table and stores keys and values in a hash. The resultant hash is not nested in any way.
+This module reads a database table and stores keys and values in a hash.
 
 The aim is to create a hash which is a simple look-up table. To this end, the module allows the key_column to point to
 an SQL expression.
+
+C<select()> and C<select_hashref()> do not nest the hash in any way.
+
+C<select_tree()> returns a nested hash. C<select_tree()> will call C<select_hashref()> if necessary, ie
+if you have not called C<select_hashref()> first.
 
 =head1 Distributions
 
@@ -223,6 +342,9 @@ new(...) returns a C<DBIx::Table2Hash> object.
 This is the class's contructor.
 
 Parameters:
+
+Note: These parameters are not checked until you call C<select_*()>, which means the parameters can be passed
+in to C<new()>, C<select_*()>, or both.
 
 =over 4
 
@@ -246,7 +368,8 @@ This parameter is mandatory.
 
 key_column
 
-The name of the column, or SQL expression, to use for hash keys.
+When calling C<select()>, C<select_hashref()> and C<select_tree()>, this is the name of the database column,
+or the SQL expression, to use for hash keys.
 
 Say you have 2 columns, called col_a and col_b. Then you can concatenate them with:
 
@@ -260,12 +383,32 @@ This parameter is mandatory.
 
 =item *
 
+child_column
+
+When calling C<select_tree()>, this is the name of the database column which, combined with the
+parent_column column, defines the relationship between nodes and their children.
+
+This parameter is mandatory if you call C<select_tree()>, and ignored if you call C<select()> or
+C<select_hashref()>.
+
+=item *
+
+parent_column
+
+When calling C<select_tree()>, this is the name of the database column which, combined with the
+child_column column, defines the relationship between nodes and their children.
+
+This parameter is mandatory if you call C<select_tree()>, and ignored if you call C<select()> or
+C<select_hashref()>.
+
+=item *
+
 value_column
 
-The name of the column to use for hash values.
+The name of the database column to use for hash values.
 
-This parameter is mandatory if you are going to call select(), and optional if you are going to call
-select_hashref().
+This parameter is mandatory if you call C<select()>, and ignored if you call C<select_hashref()> or
+C<select_tree()>.
 
 =item *
 
@@ -281,25 +424,54 @@ Returns a object of type C<DBIx::Table2Hash>.
 
 See above, in the section called 'Constructor and initialization'.
 
-=head1 Method: select()
+=head1 Method: select(%parameter)
 
 Returns a hash ref.
-
-Calling select() actually executes the SQL select statement, and builds the hash.
 
 Each key in the hash points to a single value.
 
-The demo program test-table2hash.pl, in the examples/ directory, calls select().
+Named parameters, as documented above, can be passed in to this method.
 
-=head1 Method: select_hashref()
+Calling C<select()> actually executes the SQL select statement, and builds the hash.
+
+The demo program test-table2hash.pl, in the examples/ directory, calls C<select()>.
+
+=head1 Method: select_hashref(%parameter)
 
 Returns a hash ref.
 
-Calling select_hashref() actually executes the SQL select statement, and builds the hash.
+Each key in the hash points to a hashref.
+
+Named parameters, as documented above, can be passed in to this method.
+
+Calling C<select_hashref()> actually executes the SQL select statement, and builds the hash.
+
+The demo program test-table2hash.pl, in the examples/ directory, calls C<select_hashref()>.
+
+=head1 Method: select_tree(%parameter)
+
+Returns a hash ref.
 
 Each key in the hash points to a hashref.
 
-The demo program test-table2hash.pl, in the examples/ directory, calls select_hashref().
+Named parameters, as documented above, can be passed in to this method.
+
+Calling C<select_tree()> automatically calls C<select_hashref()>, if you have not already called
+C<select_hashref()>.
+
+The demo program test-table2tree.pl, in the examples/ directory, calls C<select_tree()>.
+
+=head1 DBIx::Table2Hash and CGI::Explorer
+
+The method C<select_tree()> can obviously return a hash with multiple keys at the root level, depending on
+the contents of the database table.
+
+Such a hash cannot be passed in to CGI::Explorer V 2.00+. Here's a way around this restriction: Create, on
+the fly, a hash key which is The Mother of All Roots. Eg:
+
+	my($t2h)  = DBIx::Table2Hash -> new(...);
+	my($tree) = $t2h -> select_tree(...);
+	my($exp)  = CGI::Explorer -> new(...) -> from_hash(hashref => {OneAndOnly => $tree});
 
 =head1 Required Modules
 
@@ -313,13 +485,15 @@ See Changes.txt.
 
 Q: What is the point of this module?
 
-A: To be able to restore a hash from a database rather than from a file.
+A 1: To be able to restore a hash from a database rather than from a file.
+
+A 2: To be able to construct, from a database table, a hash suitable for passing in to CGI::Explorer V 2.00.
 
 Q: Can your other module C<DBIx::Hash2Table> be used to save the hash back to the database?
 
 A: Sure.
 
-Q: Do you ship a complete demo, which loads a table and demonstrates the 2 methods select() and select_hashref()?
+Q: Do you ship demos for the 3 methods C<select()>, C<select_hashref()> and C<select_tree()>?
 
 A: Yes. See the examples/ directory.
 
@@ -362,7 +536,7 @@ and other 'funny' characters, eg '&' (both of which I have to deal with under MS
 
 C<DBIx::Tree>
 
-This module is more like the inverse of C<DBIx::Hash2Table>, in that it assumes you are building a nested hash.
+This module was the inspiration for C<select_tree()>.
 
 As it reads the database table it calls a call-back sub, which you use to process the rows of the table.
 
