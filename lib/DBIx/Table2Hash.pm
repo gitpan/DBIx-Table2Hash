@@ -55,7 +55,7 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw(
 
 );
-our $VERSION = '1.14';
+our $VERSION = '1.17';
 
 # -----------------------------------------------
 
@@ -479,14 +479,6 @@ the fly, a hash key which is The Mother of All Roots. Eg:
 	my($tree) = $t2h -> select_tree(...);
 	my($exp)  = CGI::Explorer -> new(...) -> from_hash(hashref => {OneAndOnly => $tree});
 
-=head1 Required Modules
-
-Only those shipped with Perl.
-
-=head1 Changes
-
-See Changes.txt.
-
 =head1 FAQ
 
 Q: What is the point of this module?
@@ -556,8 +548,7 @@ Home page: http://savage.net.au/index.html
 
 =head1 Copyright
 
-Australian copyright (c) 2003, Ron Savage. All rights reserved.
-
+Australian copyright (c) 2003, Ron Savage.
 	All Programs of mine are 'OSI Certified Open Source Software';
 	you can redistribute them and/or modify them under the terms of
 	The Artistic License, a copy of which is available at:
